@@ -2,8 +2,16 @@
 name = "anon_survey"
 version = "0.1.0"
 authors = ["Jacob White <white570@purdue.edu>"]
+homepage = "https://github.com/jdwhite88/anon-survey"
+repository = "https://github.com/jdwhite88/anon-survey"
 edition = "2018"
+default-run = "anon_survey"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# TODO: i128_support?
+# Random number generator
+rand = "0.5"
+# Barreto-Naehrig curve pairing cryptography
+tbn = "0.4.3"
