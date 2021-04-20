@@ -4,6 +4,8 @@ extern crate rand;
 
 mod users;
 use users::SA::SurveyAuthority;
+use users::RA::RegistrationAuthority;
+
 
 use tbn::{Group, Fr, Fq, G1, G2, pairing};
 use tbn::arith::U256;
@@ -25,6 +27,14 @@ fn main() {
     print!("modulus = {:?}", q);
     println!();
 
+    // Instantiate new Registration Authority
+    let ra:RegistrationAuthority = RegistrationAuthority::new(g, g2);
+    println!("Registration Authority (RA)");
+    println!("u = {:?}", ra.vk.u);
+    println!("v = {:?}", ra.vk.v);
+    println!("h = {:?}", ra.vk.h);
+    println!();
+
     // Instantiate new Survey Authority
     let sa:SurveyAuthority = SurveyAuthority::new(g, g2);
     println!("Survey Authority (SA)");
@@ -33,6 +43,9 @@ fn main() {
     println!("h = {:?}", sa.vk.h);
     // TODO: Figure out how to print something of type Gt
 //    println!("pair = {:?}", sa.vk.pk.0);
+    println!();
+
+
 
     // TODO: Remove test DH protocol  
 
