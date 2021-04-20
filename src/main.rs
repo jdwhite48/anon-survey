@@ -1,15 +1,40 @@
 
 extern crate tbn;
 extern crate rand;
+
+mod users;
+use users::SA::SurveyAuthority;
+
 use tbn::{Group, Fr, Fq, G1, G2, pairing};
 use tbn::arith::U256;
 
 fn main() {
     println!("Hello, world!");
+    
+    
+    
+    // Crytpographiclaly secure thread-local rng
+    let rng = &mut rand::thread_rng();
+    
+    // Construct "generators" g in G_1 and g_2 in G_2? 
+    // TODO: What are the actual generators of G_1 and G_2 ???
+    let (g, g2):(G1, G2) = (G1::one() * Fr::random(rng), G2::one() * Fr::random(rng));
+    
+    // TODO: Is this the right modulus / order of cyclic groups ???
+    let q:U256 = Fq::modulus();
+    print!("modulus = {:?}", q);
+    println!();
+
+    // Instantiate new Survey Authority
+    let sa:SurveyAuthority = SurveyAuthority::new(g, g2);
+    println!("Survey Authority (SA)");
+    println!("u = {:?}", sa.vk.u);
+    println!("v = {:?}", sa.vk.v);
+    println!("h = {:?}", sa.vk.h);
+    // TODO: Figure out how to print something of type Gt
+//    println!("pair = {:?}", sa.vk.pk.0);
 
     // TODO: Remove test DH protocol  
-    // Thread-local CSRNG
-    let rng = &mut rand::thread_rng();
 
     let alice_sk = Fr::random(rng);
     let bob_sk = Fr::random(rng);
@@ -19,38 +44,16 @@ fn main() {
     let (alice_pk1, alice_pk2) = (G1::one() * alice_sk, G2::one() * alice_sk);
     let (bob_pk1, bob_pk2) = (G1::one() * bob_sk, G2::one() * bob_sk);
     let (carol_pk1, carol_pk2) = (G1::one() * carol_sk, G2::one() * carol_sk);
-    
-    let q = Fq::modulus();
-    print!("modulus = {:?}", q);
-    println!();
 
     let b = G1::b();
-    println!("G1 - b = {:?}", b);
+    println!("G1");
+    println!("b = {:?}", b);
     let buint: U256 = b.into_u256();
-    println!("G1 - b (U256)= {:?}", buint.0.0);
+    println!("b (U256) = {:?}", buint.0);
     println!();
 
     println!("Alice");
     println!("pk:\npk1 = {:?}\npk2 = {:?}", alice_pk1, alice_pk2);
-
-    let x = alice_pk1.x();
-    println!("x = {:?}", x);
-    println!("x (U256)= {:?}", x.into_u256());
-    let y = alice_pk1.y();
-    println!("y = {:?}", y);
-    println!("y (U256)= {:?}", y.into_u256());
-    let z = alice_pk1.z();
-    println!("z = {:?}", z);
-    println!("z (U256)= {:?}", z.into_u256());
-
-    let x_real = alice_pk2.x().real();
-    let x_i = alice_pk2.x().imaginary();
-    println!("x (real) = {:?}", x_real);
-    println!("x (real, U256)= {:?}", x_real.into_u256());
-    println!("x (imaginary) = {:?}", x_i);
-    println!("x (imaginary, U256)= {:?}", x_i.into_u256());
-    println!();
-    
 
     println!();
     println!("Bob");
@@ -62,8 +65,7 @@ fn main() {
     
     println!();
 
-
-    // Compute shared secret
+    // Compute shared DH secret
     let alice_secret = pairing(bob_pk1, carol_pk2).pow(alice_sk);
     let bob_secret = pairing(carol_pk1, alice_pk2).pow(bob_sk);
     let carol_secret = pairing(alice_pk1, bob_pk2).pow(carol_sk);
