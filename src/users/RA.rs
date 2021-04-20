@@ -13,7 +13,7 @@ pub struct VkRA {
 
 // Secret signing key used by Registration Authority
 struct SkRA {
-    y: Fr
+    x: Fr
 }
 
 pub struct RegistrationAuthority {
@@ -43,15 +43,15 @@ impl RegistrationAuthority {
         let v:G1 = G1::one() * Fr::random(rng);
         let h:G1 = G1::one() * Fr::random(rng);
 
-        // Generate secret y as element of cyclic group with order r (q, in ANONIZE's notation)
-        let y:Fr = Fr::random(rng);
+        // Generate secret x as element of cyclic group with order r (q, in ANONIZE's notation)
+        let x:Fr = Fr::random(rng);
 
-        // Compute e(g, g2)^y
-        let pair:Gt = pairing(g, g2).pow(y);
+        // Compute e(g, g2)^x
+        let pair:Gt = pairing(g, g2).pow(x);
 
         // Get public and private keys
         let vk:VkRA = VkRA { u, v, h, pk: pair };
-        let sk:SkRA = SkRA { y };
+        let sk:SkRA = SkRA { x };
 
         // Return RegistrationAuthority
         RegistrationAuthority { vk, sk }
