@@ -186,16 +186,11 @@ fn main() {
     for i in 0..5 {
         userbase.push(User::new());
     }
-    for user in &userbase {
-        println!("{:?}", user.id);
-    }
+    userbase.push(SurveyAuthority::new(g, g2));
     println!();
     userbase[0].re_identify();
     userbase[3].re_identify();
     println!();
-    for user in &userbase {
-        println!("{:?}", user.id);
-    }
 
     // TODO: Have all users run on separate threads for efficiency
 

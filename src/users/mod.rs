@@ -19,7 +19,7 @@ pub struct User {
     
     // Unique user ID (kept hidden to others when submitting surveys -- user chooses when to
     // reveal
-    pub id: Fr,
+    id: Fr,
     pub vk: VerificationKey,
     // Secret signing key used by Survey & Registration Authorities
     sk: Fr
@@ -53,14 +53,25 @@ impl User {
     pub fn re_identify(&mut self) -> Fr {
 
         let old_id:Fr = (*self).id;
-        println!("old_id: {:?}", old_id);
 
         let rng = &mut rand::thread_rng();
         (*self).id = Fr::random(rng);
-        println!("new_id: {:?}", (*self).id);
 
         return old_id;
     }
+
+    // TODO: Allow user to dynamically implement SurveyAuthority trait if they wish to do so after
+    // initialization.
+
+    // Generate signature-verification keys on the fly to be able to generate surveys
+//    pub fn become_SA(&mut self, g:G1, g2:G2) -> impl SurveyAuthority {
+        
+//        let (vk, y) = SurveyAuthority::gen_SA(g, g2);
+//        (*self).vk = vk;
+//        (*self).y = y;
+//        println!("{:?}", (*self).vk.u);
+//        self
+//    }
 }
 
 
