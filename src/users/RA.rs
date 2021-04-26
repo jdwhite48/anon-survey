@@ -61,6 +61,11 @@ impl RegistrationAuthority {
     }
 }
 
+
+/*
+ * Unit tests
+ */
+
 #[test]
 #[allow(non_snake_case)]
 // Test to ensure that e(g, g2)^(sk_RA) = vk_RA
@@ -71,3 +76,85 @@ fn test_RA_keys() {
     assert!( pairing(g, g2).pow(ra.sk) == ra.vk.pk ); 
 }
 
+
+/*
+ * Benchmark tests
+ */
+
+#[test]
+#[ignore]
+#[allow(non_snake_case)]
+// Test 100 iterations of GenRA to get mean and standard deviation
+fn bench_100_gen_RA() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    
+    // 100 irerations of GenRA
+    const NUM_TRIALS:usize = 100;
+    assert!(NUM_TRIALS > 1);
+    println!("GenRA Benchmark Test ({} trials)", NUM_TRIALS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_TRIALS] = [Duration::new(0,0);NUM_TRIALS];
+    for i in 0..NUM_TRIALS {
+        let start = Instant::now(); 
+        let _ra = RegistrationAuthority::new(g, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("Trial {}:\t{:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_TRIALS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_TRIALS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_TRIALS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+}
+
+
+#[test]
+#[allow(non_snake_case)]
+// Test 5 iterations of GenRA to get mean and standard deviation
+fn bench_5_gen_RA() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    
+    // 5 irerations of GenRA
+    const NUM_TRIALS:usize = 5;
+    assert!(NUM_TRIALS > 1);
+    println!("GenRA Benchmark Test ({} trials)", NUM_TRIALS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_TRIALS] = [Duration::new(0,0);NUM_TRIALS];
+    for i in 0..NUM_TRIALS {
+        let start = Instant::now(); 
+        let _ra = RegistrationAuthority::new(g, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("Trial {}:\t{:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_TRIALS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_TRIALS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_TRIALS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+}

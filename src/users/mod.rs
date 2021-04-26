@@ -42,10 +42,8 @@ pub trait SurveyAuthority {
     // Static method aliasing gen_SA
     fn new(g:G1, g2:G2) -> Self;
     
-    // Concrete static method that creates values for SA
-//    fn gen_SA(g:G1, g2:G2) -> (VerificationKey, Fr);
-
     #[allow(non_snake_case)]
+    // Static method that creates values for SA
     fn gen_SA(g:G1, g2:G2) -> (VerificationKey, Fr) {
 
         // crytpographiclaly secure thread-local rng
@@ -82,6 +80,11 @@ impl SurveyAuthority for User {
     }
 }
 
+
+/*
+ * Unit tests
+ */
+
 #[test]
 #[allow(non_snake_case)]
 // Test to ensure that e(g, g2)^(sk_SA) = vk_SA
@@ -92,3 +95,85 @@ fn test_SA_keys() {
     assert!( pairing(g, g2).pow(sa.sk) == sa.vk.pk ); 
 }
 
+
+/*
+ * Benchmark tests
+ */
+
+#[test]
+#[ignore]
+#[allow(non_snake_case)]
+// Test 100 iterations of GenSA to get mean and standard deviation
+fn bench_100_gen_SA() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    
+    // 100 irerations of GenSA
+    const NUM_TRIALS:usize = 100;
+    assert!(NUM_TRIALS > 1);
+    println!("GenSA Benchmark Test ({} trials)", NUM_TRIALS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_TRIALS] = [Duration::new(0,0);NUM_TRIALS];
+    for i in 0..NUM_TRIALS {
+        let start = Instant::now(); 
+        let _sa:User = SurveyAuthority::new(g, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("Trial {}:\t{:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_TRIALS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_TRIALS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_TRIALS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+}
+
+
+#[test]
+#[allow(non_snake_case)]
+// Test 5 iterations of GenSA to get mean and standard deviation
+fn bench_5_gen_SA() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    
+    // 5 irerations of GenSA
+    const NUM_TRIALS:usize = 5;
+    assert!(NUM_TRIALS > 1);
+    println!("GenSA Benchmark Test ({} trials)", NUM_TRIALS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_TRIALS] = [Duration::new(0,0);NUM_TRIALS];
+    for i in 0..NUM_TRIALS {
+        let start = Instant::now(); 
+        let _sa:User = SurveyAuthority::new(g, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("Trial {}:\t{:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_TRIALS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_TRIALS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_TRIALS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+}
