@@ -35,28 +35,39 @@ fn get_generator_pair() -> (G1, G2) {
 
 fn main() {
     
-    // TODO: Is this the right modulus / order of cyclic groups ???
-    let q:U256 = Fq::modulus();
-    println!("modulus = {:?}", q);
-    println!();
+    // Prime order of cyclic group for G1 and G2 (TODO: Check???)
 
+    println!("Pairing-friendly Barreto-Naehrig (BN) curve:");
     // TODO: Have all users run on separate threads
     let (g, g2):(G1, G2) = get_generator_pair();
+    println!("g ∈ G1 (generator) = {:?}", g);
+    println!("g2 ∈ G2 (generator) = {:?}", g2);
+    println!("Bilinear pairing e : G1 × G2 -> Gt, with:");
+    let q:U256 = Fq::modulus();
+    println!("\tq (prime order of G1, G2, and Gt) = {:?}", q);
+    println!("\te : y^2 = x^3 + b");
+    println!("\t\tb (constant coefficient) = {:?}", G1::b());
+    println!("\t\tb (constant coefficient) = {:?}", G2::b());
+    // TODO: Figure out how to print elements of type Gt
+//    println!("\te(g, g2) ∈ Gt (generator) = {:?}", pairing(g, g2));
+    println!("\te(g, g2) ∈ Gt (generator)");
+    println!();
 
     // Instantiate new Registration Authority
+    println!("Generating signature-verification key pair (x, vk_RA) for Registration Authority (RA)...");
     let ra:RegistrationAuthority = RegistrationAuthority::new(g, g2);
-    println!("Registration Authority (RA)");
-    println!("u = {:?}", ra.vk.u);
-    println!("v = {:?}", ra.vk.v);
-    println!("h = {:?}", ra.vk.h);
+    println!("vk_RA.u ∈ ℤ_q = {:?}", ra.vk.u);
+    println!("vk_RA.v ∈ ℤ_q = {:?}", ra.vk.v);
+    println!("vk_RA.h ∈ ℤ_q = {:?}", ra.vk.h);
     println!();
 
     // Instantiate new Survey Authority
+    println!("Generating signature-verification key pair (y, vk_SA) for Survey Authority (SA)...");
     let sa:User = SurveyAuthority::new(g, g2);
-    println!("Survey Authority (SA)");
-    println!("u = {:?}", sa.vk.u);
-    println!("v = {:?}", sa.vk.v);
-    println!("h = {:?}", sa.vk.h);
+    println!("vk_SA.u ∈ ℤ_q = {:?}", sa.vk.u);
+    println!("vk_SA.v ∈ ℤ_q = {:?}", sa.vk.v);
+    println!("vk_SA.h ∈ ℤ_q = {:?}", sa.vk.h);
+    println!();
     
     // TODO: Figure out how to print something of type Gt
 //    println!("pair = {:?}", sa.vk.pk.0);
