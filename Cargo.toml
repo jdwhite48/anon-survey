@@ -15,3 +15,5 @@ default-run = "anon_survey"
 rand = "0.5"
 # Barreto-Naehrig curve pairing cryptography
 tbn = "0.4.3"
+# Convert to hex string
+hex = "0.4"
