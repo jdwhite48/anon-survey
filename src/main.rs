@@ -3,9 +3,7 @@ extern crate tbn;
 extern crate rand;
 
 mod users;
-use users::SA::SurveyAuthority;
-use users::RA::RegistrationAuthority;
-
+use users::{User, SurveyAuthority, RegistrationAuthority};
 
 use tbn::{Group, Fr, Fq, G1, G2, pairing};
 use tbn::arith::U256;
@@ -58,7 +56,7 @@ fn main() {
     println!();
 
     // Instantiate new Survey Authority
-    let sa:SurveyAuthority = SurveyAuthority::new(g, g2);
+    let sa:User = SurveyAuthority::new(g, g2);
     println!("Survey Authority (SA)");
     println!("u = {:?}", sa.vk.u);
     println!("v = {:?}", sa.vk.v);
