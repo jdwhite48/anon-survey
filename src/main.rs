@@ -1,12 +1,15 @@
 
 extern crate tbn;
 extern crate rand;
+extern crate hex;
 
 mod users;
 use users::{User, SurveyAuthority, RegistrationAuthority};
 
-use tbn::{Group, Fq, G1, G2};
+use tbn::{Group, Fq, G1, Fq2, G2};
 use tbn::arith::U256;
+
+use hex::{FromHex, encode};
 
 // Returns generators (g, g2) in (G1, G2)
 // Because G1 and G2 are additive cyclic groups of prime order by construction of BN curves
@@ -78,20 +81,22 @@ fn main() {
      * ------------------------------------------------------------------------------
      */
 
+    const BN_BYTES:usize = 32;
     println!("256-bit Barreto-Naehrig curve (Fp256BN):");
     println!();
     println!("BN curves are bilinear pairings e : G1 × G2 -> Gt with:");
-    
     let p:U256 = Fq::modulus();
     println!("\tp (prime modulus for elliptic curves) = 0x{}", to_hex_string(p));
+
+    // Known q parameter (prime order of G1) for 256-bit BN curve (Kasamatsu et al., 2014)
+    let q_hex = String::from("fffffffffffcf0cd46e5f25eee71a49e0cdc65fb1299921af62d536cd10b500d");
+    let q_slice = <[u8; BN_BYTES]>::from_hex(q_hex.clone()).expect("Could not decode q");
+    let q = U256::from_slice(&q_slice).expect("Could not convert q to U256"); 
+    println!("\t\tq (prime order of G1, G2, and Gt) = 0x{}", q_hex);
 
     // TODO: Figure out what z does in G1 and G2
     
     println!("\tG1 = E/𝔽_q is a q-order additive cyclic subgroup of E(𝔽_p), where E : y^2 = x^3 + b\tmod p is an elliptic curve with:");
-    // Known q parameter (prime order of G1) for 256-bit BN curve (Kasamatsu et al., 2014)
-    // TODO: Convert back into U256
-    let q_hex = String::from("0xfffffffffffcf0cd46e5f25eee71a49e0cdc65fb1299921af62d536cd10b500d");
-    println!("{}", q_hex.len()); 
     println!("\t\t(x,y) ∈ E(𝔽_p) (base point):");
     let x:U256 = G1::one().x().into_u256();
     println!("\t\t\tx = 0x{}", to_hex_string(x));
@@ -102,14 +107,20 @@ fn main() {
     println!();
     
     println!("\tG2 = E'/𝔽_q2 is an additive cyclic subgroup of E(𝔽_{{p^k}}), where E' : y^2 = x^3 + b/xi\tmod p  is a twisted elliptic curve with:");
+    let mut k_slice:[u8;BN_BYTES] = [0;BN_BYTES];
+    k_slice[BN_BYTES-1] = 12;
+    let k:U256 = U256::from_slice(&k_slice).expect("Could not convert k to U256");
+        println!("\t\tk (embedding degree of G2) = {}", to_hex_string(k));
+
     println!("\t\t(x,y) ∈ E(𝔽_{{p^k}}), (base point):");
 
-    // TODO: Find embedding degree k (min integer s.t. r | q^k -1 and r^2 doesn't divide q^k - 1)
-    // q2 = q^k
-    let x2:U256 = G1::one().x().into_u256();
-    println!("\t\t\tx = 0x{}", to_hex_string(x2));
-    let y2:U256 = G1::one().y().into_u256();
-    println!("\t\t\ty = 0x{}", to_hex_string(y2));
+    let base_pt:(Fq2, Fq2) = (G2::one().x(), G2::one().y());
+    let x2_real:U256 = base_pt.0.real().into_u256();
+    let x2_i:U256 = base_pt.0.imaginary().into_u256();
+    println!("\t\t\tx = 0x{} + 0x{} i", to_hex_string(x2_real), to_hex_string(x2_i));
+    let y2_real:U256 = base_pt.1.real().into_u256();
+    let y2_i:U256 = base_pt.1.imaginary().into_u256();
+    println!("\t\t\ty = 0x{} + 0x{} i", to_hex_string(y2_real), to_hex_string(y2_i));
     let b2_real:U256 = G2::b().real().into_u256();
     let b2_i:U256 = G2::b().imaginary().into_u256();    
     println!("\t\tb' ∈ 𝔽_q2 (constant coefficient) = 0x{} + 0x{} i", to_hex_string(b2_real), to_hex_string(b2_i));
@@ -124,7 +135,7 @@ fn main() {
 
     // TODO: Figure out how to print elements of type Gt
 //    println!("\te(g, g2) ∈ Gt (generator) = {:?}", pairing(g, g2));
-    println!("\tThen, we can compute e(g, g2) ∈ Gt (generator)");
+    println!("Then, we can compute e(g, g2) ∈ Gt (generator)");
     println!();
     println!();
     
@@ -193,8 +204,4 @@ fn test_generators() {
     }
 }
 
-// TODO: Test that q slices into a multiple of 8 bytes (for 256-bit BN curve, should be 32 bytes)
-
-// TODO: Test that embedding degree k for BN curve is 12
-
-// TODO: Test hex conversions
+// TODO: Test U256 -> hex conversions
