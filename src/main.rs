@@ -31,26 +31,25 @@ fn get_generator_pair() -> (G1, G2) {
     (g, g2)
 }
 
-fn main() {
-    
-    // Prime order of cyclic group for G1 and G2
+// Convert U256 into hex string encoding (excluding 0x)
+fn to_hex_string(n:U256) -> String {
 
-    println!("Pairing-friendly Barreto-Naehrig (BN) curve:");
-    // TODO: Have all users run on separate threads
-    let (g, g2):(G1, G2) = get_generator_pair();
-    println!("g ∈ G1 (generator) = {:?}", g);
-    println!("g2 ∈ G2 (generator) = {:?}", g2);
-    println!("Bilinear pairing e : G1 × G2 -> Gt, with:");
-    let q:U256 = Fq::modulus();
-    println!("\tq (prime order for G1, G2, and Gt, and modulus for E) = {:?}", q);
-    println!("\te : y^2 = x^3 + b");
-    let b:U256 = G1::b().into_u256();
+    let bytes = to_bytes(n);
+
+    // Return hex encoding of byte vector
+    return hex::encode(bytes);
+}
+
+
+// Iterate through bits of U256 and return byte vector in MSB order
+fn to_bytes(n:U256) -> Vec<u8> {
+
     let mut iter = 0;
     let mut byte:u8 = 0;
-    // Compute bits MSB -> LSB
     let mut bytes:Vec<u8> = vec![];
-    for bit_bool in b.bits() {
-        let bit = bit_bool as u8;
+    for b in n.bits() {
+        let bit = b as u8;
+        // Finished whole byte -- save byte to vector and reset first
         if iter % 8 == 0 {
             bytes.push(byte);
             byte = 0;
@@ -59,12 +58,82 @@ fn main() {
         iter += 1;
     }
     bytes.push(byte);
-    println!("\t\tb (constant coefficient) ∈ 𝔽_q for G1 = {}", hex::encode(bytes).as_str());
-    println!("\t\tb (constant coefficient) ∈ 𝔽_q2 for G2 = {:?} + {:?} i", G2::b().real().into_u256(), G2::b().imaginary().into_u256());
+
+    return bytes;
+}
+
+fn main() {
+    
+    /* ------------------------------------------------------------------------------
+     *                          Barreto-Naehrig (BN) Curves                         
+     * 
+     * Pairing-friendly bilinear elliptic curve (see code for in-depth description)
+     *
+     * Sources:
+     *  - Barreto-Naehrig Curves (Kasamatsu et al., 2014)
+     *      https://tools.ietf.org/id/draft-kasamatsu-bncurves-01.html
+     *  - A Family of Implementation-Friendly BN Elliptic Curves (Pereira et al., 2011)
+     *      https://eprint.iacr.org/2010/429.pdf
+     *
+     * ------------------------------------------------------------------------------
+     */
+
+    println!("256-bit Barreto-Naehrig curve (Fp256BN):");
+    println!();
+    println!("BN curves are bilinear pairings e : G1 × G2 -> Gt with:");
+    
+    let p:U256 = Fq::modulus();
+    println!("\tp (prime modulus for elliptic curves) = 0x{}", to_hex_string(p));
+
+    // TODO: Figure out what z does in G1 and G2
+    
+    println!("\tG1 = E/𝔽_q is a q-order additive cyclic subgroup of E(𝔽_p), where E : y^2 = x^3 + b\tmod p is an elliptic curve with:");
+    // Known q parameter (prime order of G1) for 256-bit BN curve (Kasamatsu et al., 2014)
+    // TODO: Convert back into U256
+    let q_hex = String::from("0xfffffffffffcf0cd46e5f25eee71a49e0cdc65fb1299921af62d536cd10b500d");
+    println!("{}", q_hex.len()); 
+    println!("\t\t(x,y) ∈ E(𝔽_p) (base point):");
+    let x:U256 = G1::one().x().into_u256();
+    println!("\t\t\tx = 0x{}", to_hex_string(x));
+    let y:U256 = G1::one().y().into_u256();
+    println!("\t\t\ty = 0x{}", to_hex_string(y));
+    let b:U256 = G1::b().into_u256();
+    println!("\t\tb ∈ 𝔽_p (constant coefficient) = 0x{}", to_hex_string(b));
+    println!();
+    
+    println!("\tG2 = E'/𝔽_q2 is an additive cyclic subgroup of E(𝔽_{{p^k}}), where E' : y^2 = x^3 + b/xi\tmod p  is a twisted elliptic curve with:");
+    println!("\t\t(x,y) ∈ E(𝔽_{{p^k}}), (base point):");
+
+    // TODO: Find embedding degree k (min integer s.t. r | q^k -1 and r^2 doesn't divide q^k - 1)
+    // q2 = q^k
+    let x2:U256 = G1::one().x().into_u256();
+    println!("\t\t\tx = 0x{}", to_hex_string(x2));
+    let y2:U256 = G1::one().y().into_u256();
+    println!("\t\t\ty = 0x{}", to_hex_string(y2));
+    let b2_real:U256 = G2::b().real().into_u256();
+    let b2_i:U256 = G2::b().imaginary().into_u256();    
+    println!("\t\tb' ∈ 𝔽_q2 (constant coefficient) = 0x{} + 0x{} i", to_hex_string(b2_real), to_hex_string(b2_i));
+    println!();
+
+    println!("With these parameters, e returns a element in the multiplicative group Gt with the same order as G2");
+    println!();
+
+    let (g, g2):(G1, G2) = get_generator_pair();
+    println!("g ∈ G1 (generator) = {:?}", g);
+    println!("g2 ∈ G2 (generator) = {:?}", g2);
+
     // TODO: Figure out how to print elements of type Gt
 //    println!("\te(g, g2) ∈ Gt (generator) = {:?}", pairing(g, g2));
-    println!("\te(g, g2) ∈ Gt (generator)");
+    println!("\tThen, we can compute e(g, g2) ∈ Gt (generator)");
     println!();
+    println!();
+    
+    
+    
+    /* ------------------------------------------------------------------------------
+     *                                  GenRA                                       
+     * ------------------------------------------------------------------------------
+     */
 
     // Instantiate new Registration Authority
     println!("Generating signature-verification key pair (x, vk_RA) for Registration Authority (RA)...");
@@ -74,6 +143,13 @@ fn main() {
     println!("vk_RA.h ∈ ℤ_q = {:?}", ra.vk.h);
     println!();
 
+
+    
+    /* ------------------------------------------------------------------------------
+     *                                  GenSA                                       
+     * ------------------------------------------------------------------------------
+     */
+
     // Instantiate new Survey Authority
     println!("Generating signature-verification key pair (y, vk_SA) for Survey Authority (SA)...");
     let sa:User = SurveyAuthority::new(g, g2);
@@ -82,8 +158,20 @@ fn main() {
     println!("vk_SA.h ∈ ℤ_q = {:?}", sa.vk.h);
     println!();
     
-    // TODO: Figure out how to print something of type Gt
-//    println!("pair = {:?}", sa.vk.pk.0);
+
+    /* ------------------------------------------------------------------------------
+     *                                  ***NOTE***                                  
+     * The setup of every exchange between the users is NOT supposed to go
+     * through a central or third party like it is here. This was done only as a
+     * proof-of-concept and would likely VIOLATE ANONYMITY in production code.
+     * A proper implementation of ANONIZE should (at least) establish private 
+     * connections between all users, and ESPECIALLY an anonymous connection
+     * between +
+     * ------------------------------------------------------------------------------
+    */
+
+    // TODO: Have all users run on separate threads for efficiency
+
     println!();
 }
 
@@ -104,3 +192,9 @@ fn test_generators() {
         assert!( pairing(g * a, g2 * b) == pairing(g, g2).pow(a * b) );
     }
 }
+
+// TODO: Test that q slices into a multiple of 8 bytes (for 256-bit BN curve, should be 32 bytes)
+
+// TODO: Test that embedding degree k for BN curve is 12
+
+// TODO: Test hex conversions
