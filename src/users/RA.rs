@@ -61,4 +61,13 @@ impl RegistrationAuthority {
     }
 }
 
+#[test]
+#[allow(non_snake_case)]
+// Test to ensure that e(g, g2)^(sk_RA) = vk_RA
+fn test_RA_keys() {
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    let ra = RegistrationAuthority::new(g, g2);
+    assert!( pairing(g, g2).pow(ra.sk) == ra.vk.pk ); 
+}
 

@@ -1,6 +1,9 @@
 extern crate tbn;
 extern crate rand;
 
+
+#[allow(non_snake_case)]
+pub mod RA;
 pub use self::RA::RegistrationAuthority;
 use tbn::{Group, Fr, G1, G2, Gt, pairing};
 
@@ -79,5 +82,13 @@ impl SurveyAuthority for User {
     }
 }
 
+#[test]
 #[allow(non_snake_case)]
-pub mod RA;
+// Test to ensure that e(g, g2)^(sk_SA) = vk_SA
+fn test_SA_keys() {
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = (G1::random(rng), G2::random(rng));
+    let sa:User = SurveyAuthority::new(g, g2);
+    assert!( pairing(g, g2).pow(sa.sk) == sa.vk.pk ); 
+}
+
