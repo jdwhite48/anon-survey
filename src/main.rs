@@ -9,7 +9,7 @@ use users::{User, SurveyAuthority, RegistrationAuthority};
 use tbn::{Group, Fq, G1, Fq2, G2};
 use tbn::arith::U256;
 
-use hex::{FromHex, encode};
+use hex::FromHex;
 
 // Returns generators (g, g2) in (G1, G2)
 // Because G1 and G2 are additive cyclic groups of prime order by construction of BN curves
@@ -92,7 +92,7 @@ fn main() {
     let q_hex = String::from("fffffffffffcf0cd46e5f25eee71a49e0cdc65fb1299921af62d536cd10b500d");
     let q_slice = <[u8; BN_BYTES]>::from_hex(q_hex.clone()).expect("Could not decode q");
     let q = U256::from_slice(&q_slice).expect("Could not convert q to U256"); 
-    println!("\t\tq (prime order of G1, G2, and Gt) = 0x{}", q_hex);
+    println!("\tq (prime order of G1, G2, and Gt) = 0x{}", q_hex);
 
     // TODO: Figure out what z does in G1 and G2
     
