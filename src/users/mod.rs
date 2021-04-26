@@ -17,12 +17,52 @@ pub struct VerificationKey {
 
 pub struct User {
     
-    // TODO: id
-    
+    // Unique user ID (kept hidden to others when submitting surveys -- user chooses when to
+    // reveal
+    pub id: Fr,
     pub vk: VerificationKey,
     // Secret signing key used by Survey & Registration Authorities
-    sk: Fr,
+    sk: Fr
 }
+
+impl User {
+    
+
+    // Generate (hopefully) unique id and return new User
+    pub fn new() -> Self {
+
+        // crytpographiclaly secure thread-local rng
+        let rng = &mut rand::thread_rng();
+        
+        // Create empty struct if user ever decides to become SA
+        let vk = VerificationKey {
+            u: G1::zero(),
+            v: G1::zero(),
+            h: G1::zero(),
+            pk: Gt::one(),
+        };
+
+        User {
+            id: Fr::random(rng),
+            vk,
+            sk: Fr::zero()
+        }
+    }
+
+    // Re-generate id and returns old ID
+    pub fn re_identify(&mut self) -> Fr {
+
+        let old_id:Fr = (*self).id;
+        println!("old_id: {:?}", old_id);
+
+        let rng = &mut rand::thread_rng();
+        (*self).id = Fr::random(rng);
+        println!("new_id: {:?}", (*self).id);
+
+        return old_id;
+    }
+}
+
 
 
 /*
@@ -73,10 +113,13 @@ impl SurveyAuthority for User {
     /* Create Survey Authority */
     fn new(g:G1, g2:G2) -> User {
  
-        // Generate parameters for SA
-        let (vk, y) = Self::gen_SA(g, g2);
+        let mut sa = User::new();
+        
         // Return user with verification and signing key for creating surveys
-        User { vk, sk: y }
+        let (vk, y) = Self::gen_SA(g, g2);
+        sa.vk = vk;
+        sa.sk = y;
+        return sa;
     }
 }
 
