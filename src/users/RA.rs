@@ -2,46 +2,51 @@ extern crate tbn;
 extern crate rand;
 
 use tbn::{Group, Fr, G1, G2, Gt, pairing};
+use super::{VerificationKey};
 
-// Signaure verification key used by Registration Authority
-pub struct VkRA {
-    pub u: G1,
-    pub v: G1,
-    pub h: G1,
-    pub pk: Gt
-}
-
-// Secret signing key used by Registration Authority
-struct SkRA {
-    x: Fr
-}
+/*
+ * ----------------------------------------------
+ * |    REGISTRATION AUTHORITY (RA)             |
+ * ----------------------------------------------
+ *
+ * The registration is a special user that can perform the following actions:
+ *      - Register authorized users under an ID
+ *          + Authorize unique user ID when user joins
+ *          + Issue master user token to allow users to participate in surveys
+ *          + Generate signature key-pair that allows them to sign and others to verify values
+ *          + Specify a list of user IDs (authenticated by the RA) to send the survey to
+*/
 
 pub struct RegistrationAuthority {
-    pub vk: VkRA,
-    sk: SkRA
+    pub vk: VerificationKey,
+    sk: Fr
 }
 
 impl RegistrationAuthority {
     
     /* Create Registration Authority */
-    pub fn new(g:G1, g2:G2) -> RegistrationAuthority {
+    pub fn new(g:G1, g2:G2) -> Self {
 
         // TODO: Call user initialization
         
-        RegistrationAuthority::gen_RA(g, g2)
+        // Generate parameters for RA
+        let (vk, x) =  Self::gen_RA(g, g2);
+
+        // Return user with verification and signing key for registering users
+        RegistrationAuthority {vk, sk: x}
     }
 
     /* Generate public and private keys for registration authority */
     #[allow(non_snake_case)]
-    pub(crate) fn gen_RA(g:G1, g2:G2) -> RegistrationAuthority {
+    fn gen_RA(g:G1, g2:G2) -> (VerificationKey, Fr) {
 
         // crytpographiclaly secure thread-local rng
         let rng = &mut rand::thread_rng();
 
         // Generate random u,v,h in G_1
-        let u:G1 = G1::one() * Fr::random(rng);
-        let v:G1 = G1::one() * Fr::random(rng);
-        let h:G1 = G1::one() * Fr::random(rng);
+        let u:G1 = G1::random(rng);
+        let v:G1 = G1::random(rng);
+        let h:G1 = G1::random(rng);
 
         // Generate secret x as element of cyclic group with order r (q, in ANONIZE's notation)
         let x:Fr = Fr::random(rng);
@@ -49,11 +54,11 @@ impl RegistrationAuthority {
         // Compute e(g, g2)^x
         let pair:Gt = pairing(g, g2).pow(x);
 
-        // Get public and private keys
-        let vk:VkRA = VkRA { u, v, h, pk: pair };
-        let sk:SkRA = SkRA { x };
+        let vk = VerificationKey { u, v, h, pk: pair };
 
-        // Return RegistrationAuthority
-        RegistrationAuthority { vk, sk }
+        // Return parameters for Registration Authority
+        (vk, x)
     }
 }
+
+

@@ -35,10 +35,6 @@ fn get_generator_pair() -> (G1, G2) {
 
 fn main() {
     
-    // Crytpographiclaly secure thread-local rng
-    let rng = &mut rand::thread_rng();
-
-    
     // TODO: Is this the right modulus / order of cyclic groups ???
     let q:U256 = Fq::modulus();
     println!("modulus = {:?}", q);
@@ -61,6 +57,7 @@ fn main() {
     println!("u = {:?}", sa.vk.u);
     println!("v = {:?}", sa.vk.v);
     println!("h = {:?}", sa.vk.h);
+    
     // TODO: Figure out how to print something of type Gt
 //    println!("pair = {:?}", sa.vk.pk.0);
     println!();
