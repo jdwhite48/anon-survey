@@ -149,9 +149,10 @@ fn main() {
     // Instantiate new Registration Authority
     println!("Generating signature-verification key pair (x, vk_RA) for Registration Authority (RA)...");
     let mut ra:RegistrationAuthority = RegistrationAuthority::new(g, g2);
-    println!("vk_RA.u ∈ ℤ_q = {:?}", ra.vk.u);
-    println!("vk_RA.v ∈ ℤ_q = {:?}", ra.vk.v);
-    println!("vk_RA.h ∈ ℤ_q = {:?}", ra.vk.h);
+    println!("sk_RA = x ∈ ℤ_q = (secret signature key)");
+    println!("vk_RA.u ∈ G1 = {:?}", ra.vk.u);
+    println!("vk_RA.v ∈ G1 = {:?}", ra.vk.v);
+    println!("vk_RA.h ∈ G1 = {:?}", ra.vk.h);
     println!();
 
 
@@ -163,10 +164,11 @@ fn main() {
 
     // Instantiate new Survey Authority
     println!("Generating signature-verification key pair (y, vk_SA) for Survey Authority (SA)...");
-    let sa:User = SurveyAuthority::new(g, g2);
-    println!("vk_SA.u ∈ ℤ_q = {:?}", sa.vk.u);
-    println!("vk_SA.v ∈ ℤ_q = {:?}", sa.vk.v);
-    println!("vk_SA.h ∈ ℤ_q = {:?}", sa.vk.h);
+    let sa:User = SurveyAuthority::new(g, g2); 
+    println!("sk_SA = y ∈ ℤ_q = (secret signature key)");
+    println!("vk_SA.u ∈ G1 = {:?}", sa.vk.u);
+    println!("vk_SA.v ∈ G1 = {:?}", sa.vk.v);
+    println!("vk_SA.h ∈ G1 = {:?}", sa.vk.h);
     println!();
     
 
@@ -188,19 +190,15 @@ fn main() {
         new_user.reg_user(&mut ra);
         userbase.push(new_user);
     }
-
-    println!("{:?}", ra.userid_list);
-
     // Just for fun, some users will change their identities
     userbase[0].re_identify(&mut ra);
     userbase[3].re_identify(&mut ra);
 
-    println!("{:?}", ra.userid_list);
-
-
-
-
-
+    println!("List of registered user ids in ℤ_q :");
+    for id in ra.userid_list { 
+        println!("User id:\t{:?}", id);
+    }
+    println!();
     
     // TODO: Have all users run on separate threads for efficiency
 

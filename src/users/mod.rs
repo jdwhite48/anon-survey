@@ -7,6 +7,8 @@ pub mod RA;
 pub use self::RA::RegistrationAuthority;
 use tbn::{Group, Fr, G1, G2, Gt, pairing};
 
+use std::collections::HashMap;
+
 // Signaure verification key used by Survey & Registration Authorities
 pub struct VerificationKey {
     pub u: G1,
@@ -22,7 +24,11 @@ pub struct User {
     id: Fr,
     pub vk: VerificationKey,
     // Secret signing key used by Survey & Registration Authorities
-    sk: Fr
+    sk: Fr,
+    // List of owned surveys (by vid)
+    pub owned_surveys: Vec<Fr>,
+    // Map of vid (survey ids) -> {RA's published user ids -> their signature}
+    pub verid_list: HashMap<Fr, HashMap<Fr, (G1, G2)>>
 }
 
 impl User {
@@ -45,7 +51,9 @@ impl User {
         User {
             id: Fr::random(rng),
             vk,
-            sk: Fr::zero()
+            sk: Fr::zero(),
+            owned_surveys: Vec::new(),
+            verid_list: HashMap::new()
         }
     }
 
@@ -121,7 +129,7 @@ pub trait SurveyAuthority {
         let v:G1 = G1::random(rng);
         let h:G1 = G1::random(rng);
 
-        // Generate secret y as element of cyclic group with order r (q, in ANONIZE's notation)
+        // Generate secret y as element of cyclic group with order r (q, in ANONIZE's notation???)
         let y:Fr = Fr::random(rng);
 
         // Compute e(g, g2)^y
@@ -148,6 +156,8 @@ impl SurveyAuthority for User {
         sa.sk = y;
         return sa;
     }
+
+
 }
 
 
