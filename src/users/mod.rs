@@ -7,8 +7,6 @@ pub mod RA;
 pub use self::RA::RegistrationAuthority;
 use tbn::{Group, Fr, G1, G2, Gt, pairing};
 
-use std::collections::HashMap;
-
 // Signaure verification key used by Survey & Registration Authorities
 pub struct VerificationKey {
     pub u: G1,
@@ -27,8 +25,8 @@ pub struct User {
     sk: Fr,
     // List of owned surveys (by vid)
     pub owned_surveys: Vec<Fr>,
-    // Map of vid (survey ids) -> {RA's published user ids -> their signature}
-    pub verid_list: HashMap<Fr, HashMap<Fr, (G1, G2)>>
+    // (survey id, {RA's published user ids -> their signature})
+    pub verid_list: Vec<(Fr, Vec<(Fr, G1, G2)>)>
 }
 
 impl User {
@@ -53,7 +51,7 @@ impl User {
             vk,
             sk: Fr::zero(),
             owned_surveys: Vec::new(),
-            verid_list: HashMap::new()
+            verid_list: Vec::new()
         }
     }
 
@@ -141,6 +139,9 @@ pub trait SurveyAuthority {
         // Return the public and private keys
         (vk, y)
     }
+
+    // Instance method that generate survey with signature for each provided user id
+    fn gen_survey(&mut self, L:Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)>;
 }
 
 impl SurveyAuthority for User {
@@ -158,6 +159,70 @@ impl SurveyAuthority for User {
     }
 
 
+        
+    fn gen_survey(&mut self, L:Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)> {
+        // crytpographiclaly secure thread-local rng
+        let rng = &mut rand::thread_rng();
+
+        // Choose random survey id as well
+        let vid = Fr::random(rng);
+        // Add vid to the list of owned surveys (by ID)
+        (*self).owned_surveys.push(vid);
+
+        /* --------------------------------------------------------------------------
+         *          Variation of Boneh-Boyen (BB) ID-based Signature Scheme
+         * --------------------------------------------------------------------------
+         */
+
+        /* Hoist invariant code to loop pre-header for efficiency */
+        // Sign with secret key
+        let sign_val:G1 = g * (*self).sk;
+        // Sign with vid
+        let vid_val:G1 = (*self).vk.u * vid;
+        
+        // Authorize all users in L (even if they're not registered -- this would be caught later)
+        // to submit a survey by constructing a signature with their id
+        for id in &L {
+            
+            // Choose random r in Z_q (TODO: Move this and sigma_2 outside of loop???)
+            let r = Fr::random(rng);
+            // Sign with participant ID
+            let user_val:G1 = (*self).vk.v * *id;
+            // Put it all together to get the first signature
+            let sigma_1:G1 = sign_val + (vid_val + user_val + (*vk_ra).h) * r;
+            // Also sign 2nd group generator with random to get second signature
+            let sigma_2:G2 = g2 * r;
+            let user_signature:(Fr, G1, G2) = (*id, sigma_1, sigma_2);
+            
+            let mut found:bool = false;
+            // Loop through the various survey(s) the SA owns
+            for (owned_vid, id_list) in &mut (*self).verid_list {
+                // Found entry to add (id, signature) to
+                if *owned_vid == vid {
+                    found = true;
+                    id_list.push(user_signature);
+                    break;
+                }
+            }
+            if !found {   
+                // Add (sigma_1, sigma_2) to the list assoc with this vid and participant id
+                let mut user_list:Vec<(Fr, G1, G2)> = Vec::new();
+                user_list.push(user_signature);
+                let survey_entry:(Fr, Vec<(Fr, G1, G2)>)  = (vid, user_list);
+                // Must create new entry for (vid, {(ids, signatures)})
+                (*self).verid_list.push(survey_entry);
+            }
+        }
+        // "Publish" list of signatures for each participant of survey vid
+        for (owned_vid, id_list) in &(*self).verid_list {
+            // NOTE: unless something were to remove it during a race condition, should always return
+            if *owned_vid == vid {
+                let vid_list:(Fr, Vec<(Fr, G1, G2)>) = (vid, (*id_list).clone());
+                return Some(vid_list);
+            }
+        }
+        return None;
+    }
 }
 
 

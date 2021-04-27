@@ -6,7 +6,7 @@ extern crate hex;
 mod users;
 use users::{User, SurveyAuthority, RegistrationAuthority};
 
-use tbn::{Group, Fq, G1, Fq2, G2};
+use tbn::{Group, Fq, G1, Fq2, G2, Fr};
 use tbn::arith::U256;
 
 use hex::FromHex;
@@ -164,7 +164,7 @@ fn main() {
 
     // Instantiate new Survey Authority
     println!("Generating signature-verification key pair (y, vk_SA) for Survey Authority (SA)...");
-    let sa:User = SurveyAuthority::new(g, g2); 
+    let mut sa:User = SurveyAuthority::new(g, g2); 
     println!("sk_SA = y ∈ ℤ_q = (secret signature key)");
     println!("vk_SA.u ∈ G1 = {:?}", sa.vk.u);
     println!("vk_SA.v ∈ G1 = {:?}", sa.vk.v);
@@ -195,11 +195,28 @@ fn main() {
     userbase[3].re_identify(&mut ra);
 
     println!("List of registered user ids in ℤ_q :");
-    for id in ra.userid_list { 
-        println!("User id:\t{:?}", id);
+    for id in &ra.userid_list { 
+        println!("User id:\t{:?}", *id);
     }
     println!();
-    
+
+    /* ------------------------------------------------------------------------------
+     *                                  GenSurvey                                       
+     * ------------------------------------------------------------------------------
+     */
+    // Could theoretically choose any list any ids, even for users who have not yet registered with
+    // the RA.
+    println!("SA: Generating survey for {} users...", ra.userid_list.len());
+    let (vid, signatures):(Fr, Vec<(Fr, G1, G2)>) = sa.gen_survey(ra.userid_list, g, g2, &ra.vk).expect("SA survey creation failed!");
+    println!("Survey generated:");
+    println!("\tvid ∈ ℤ_q (survey ID) = {:?}", vid);
+    println!("\tList of authorized users:");
+    for (id, sigma_1, sigma_2) in signatures {
+        println!("\t\tParticipant id:\t{:?}", id);
+        println!("\t\t\t(σ1, σ2) ∈ G1 × G2 (SA signature for participant) = ({:?}, {:?})", sigma_1, sigma_2);
+    }
+
+
     // TODO: Have all users run on separate threads for efficiency
 
     println!();
