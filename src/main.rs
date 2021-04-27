@@ -251,11 +251,17 @@ fn authorized(id:Fr, vid:Fr, Lvid:&Vec<(Fr, G1, G2)>, vk_sa:&VerificationKey, vk
 }
 
 
+
+/*
+ * Unit tests
+ */
+
 // Fuzzy test for if we have a good generator for pairing-based crypto
 #[test]
 fn test_generators() {
 
     let (g, g2):(G1, G2) = get_generator_pair();
+    
     // Try 5 different random values to see if assertion holds each time
     // For random a and b, asserts that e(g^a, g_2^b) = e(g,g_2)^{ab} (RHS is generator for Gt)
     let rng = &mut rand::thread_rng();
@@ -267,3 +273,224 @@ fn test_generators() {
 }
 
 // TODO: Test U256 -> hex conversions
+
+
+/*
+ * Integration tests
+ */
+
+
+/*
+ * Benchmark tests
+ */
+
+#[test]
+#[allow(non_snake_case)]
+// Test GenSurvey for 30 users to get mean and standard deviation
+fn bench_30_user_gen_survey() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = get_generator_pair();
+
+    let mut ra = RegistrationAuthority::new(g, g2);
+    let mut sa:User = SurveyAuthority::new(g, g2);
+    const NUM_USERS:usize = 30;
+    assert!(NUM_USERS > 1);
+    let mut userids:Vec<Fr> = Vec::new();
+    for _ in 0..NUM_USERS {
+        // Skip registering user -- we only care about user ids for generating survey
+        userids.push(Fr::random(rng));
+    }
+
+    // 30-participant survey for GenSurvey
+    println!("GenSurvey Benchmark Test ({} users)", NUM_USERS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_USERS] = [Duration::new(0,0);NUM_USERS];
+    for i in 0..NUM_USERS {
+        let start = Instant::now();
+        // One user at a time
+        let _ = sa.gen_survey(&vec![userids[i]], g, g2, &ra.vk).expect("SA survey creation failed!");
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("User {}: {:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_USERS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_USERS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_USERS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+    println!("Total:\t\t{:?}", sum);
+}
+
+
+#[test]
+#[ignore]
+#[allow(non_snake_case)]
+// Test GenSurvey for 300 users to get mean and standard deviation
+fn bench_300_user_gen_survey() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = get_generator_pair();
+
+    let mut ra = RegistrationAuthority::new(g, g2);
+    let mut sa:User = SurveyAuthority::new(g, g2);
+    const NUM_USERS:usize = 300;
+    assert!(NUM_USERS > 1);
+    let mut userids:Vec<Fr> = Vec::new();
+    for _ in 0..NUM_USERS {
+        // Skip registering user -- we only care about user ids for generating survey
+        userids.push(Fr::random(rng));
+    }
+ 
+    // 300-participant survey for GenSurvey
+    println!("GenSurvey Benchmark Test ({} users)", NUM_USERS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_USERS] = [Duration::new(0,0);NUM_USERS];
+    for i in 0..NUM_USERS {
+        let start = Instant::now();
+        // One user at a time
+        let _ = sa.gen_survey(&vec![userids[i]], g, g2, &ra.vk).expect("SA survey creation failed!");
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("User {}: {:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_USERS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_USERS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_USERS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+    println!("Total:\t\t{:?}", sum);
+}
+
+
+
+#[test]
+#[allow(non_snake_case)]
+// Test Authorized for 30 users to get mean and standard deviation
+fn bench_30_user_authorized() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = get_generator_pair();
+
+    let mut ra = RegistrationAuthority::new(g, g2);
+    let mut sa:User = SurveyAuthority::new(g, g2);
+    const NUM_USERS:usize = 30;
+    assert!(NUM_USERS > 1);
+    let mut userids:Vec<Fr> = Vec::new();
+    for _ in 0..NUM_USERS {
+        // Skip registering user -- we only care about user ids for generating survey
+        userids.push(Fr::random(rng));
+    }
+
+    // 30-participant survey for GenSurvey
+    println!("Generating {} survey signatures...", userids.len());
+    let (vid, signatures):(Fr, Vec<(Fr, G1, G2)>) = sa.gen_survey(&userids, g, g2, &ra.vk).expect("SA survey creation failed!");
+ 
+    // Check authorized for each user
+    println!("User Authorized Benchmark Test ({} users)", NUM_USERS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_USERS] = [Duration::new(0,0);NUM_USERS];
+    let _ = sa.gen_survey(&userids, g, g2, &ra.vk).expect("SA survey creation failed!");
+    
+    for i in 0..NUM_USERS {
+        let start = Instant::now();
+        // One user at a time
+        let _ = authorized(userids[i], vid, &signatures, &sa.vk, &ra.vk, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("User {}: {:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_USERS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_USERS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_USERS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+    println!("Total:\t\t{:?}", sum);
+}
+
+
+
+#[test]
+#[ignore]
+#[allow(non_snake_case)]
+// Test Authorized for 300 users to get mean and standard deviation
+fn bench_300_user_authorized() {
+
+    use std::time::{Duration, Instant};
+
+    // Setup 
+    let rng = &mut rand::thread_rng();
+    let (g, g2):(G1, G2) = get_generator_pair();
+
+    let mut ra = RegistrationAuthority::new(g, g2);
+    let mut sa:User = SurveyAuthority::new(g, g2);
+    const NUM_USERS:usize = 300;
+    assert!(NUM_USERS > 1);
+    let mut userids:Vec<Fr> = Vec::new();
+    for _ in 0..NUM_USERS {
+        // Skip registering user -- we only care about user ids for generating survey
+        userids.push(Fr::random(rng));
+    }
+
+    // 300-participant survey for GenSurvey
+    println!("Generating {} survey signatures...", userids.len());
+    let (vid, signatures):(Fr, Vec<(Fr, G1, G2)>) = sa.gen_survey(&userids, g, g2, &ra.vk).expect("SA survey creation failed!");
+ 
+    // Check authorized for each user
+    println!("User Authorized Benchmark Test ({} users)", NUM_USERS);
+    let mut sum:Duration = Duration::new(0,0);
+    let mut durs:[Duration;NUM_USERS] = [Duration::new(0,0);NUM_USERS];
+    let _ = sa.gen_survey(&userids, g, g2, &ra.vk).expect("SA survey creation failed!");
+    
+    for i in 0..NUM_USERS {
+        let start = Instant::now();
+        // One user at a time
+        let _ = authorized(userids[i], vid, &signatures, &sa.vk, &ra.vk, g2);
+        durs[i] = start.elapsed();
+        sum += durs[i];
+        println!("User {}: {:?}", i+1, durs[i]);
+    }
+    println!();
+    // Calculate mean
+    let mean = sum / (NUM_USERS as u32);
+    // Calculate standard deviation
+    let mut sum_of_diff:f32 = 0.0;
+    for i in 0..NUM_USERS {
+        sum_of_diff += f32::powf((((durs[i].as_millis() as i128) - (mean.as_millis() as i128)) as f32)/1000.0, 2.0);
+    }
+    let sd = ( sum_of_diff / ((NUM_USERS as f32)- 1.0)).sqrt();
+ 
+    println!("Mean:\t\t{:?}", mean);
+    println!("Std Dev:\t{:?}s", sd);
+    println!("Total:\t\t{:?}", sum);
+}
