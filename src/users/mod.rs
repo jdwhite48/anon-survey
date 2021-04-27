@@ -50,14 +50,30 @@ impl User {
     }
 
     // Re-generate id and returns old ID
-    pub fn re_identify(&mut self) -> Fr {
+    pub fn re_identify(&mut self, ra: &mut RegistrationAuthority) -> Fr {
 
+        // Generate new ID
         let old_id:Fr = (*self).id;
-
         let rng = &mut rand::thread_rng();
         (*self).id = Fr::random(rng);
+    
+        // Re-register new ID with RA, removing old ID if necessary
+        let opt_index = (*ra).userid_list.iter().position(|id| *id == old_id);
+        match opt_index {
+            Some(old_id_index) => (*ra).userid_list.remove(old_id_index),
+            _ => Fr::zero()
+        };
+        (*self).reg_user(ra);
 
         return old_id;
+    }
+
+    
+    pub fn reg_user(&mut self, ra: &mut RegistrationAuthority) {
+        // TODO: Follow the protocol to register with RA, send id to RA, and receive master token
+        
+        // Add own id to list provided by RA
+        (*ra).userid_list.push((*self).id);
     }
 
     // TODO: Allow user to dynamically implement SurveyAuthority trait if they wish to do so after

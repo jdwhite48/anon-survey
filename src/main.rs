@@ -148,7 +148,7 @@ fn main() {
 
     // Instantiate new Registration Authority
     println!("Generating signature-verification key pair (x, vk_RA) for Registration Authority (RA)...");
-    let ra:RegistrationAuthority = RegistrationAuthority::new(g, g2);
+    let mut ra:RegistrationAuthority = RegistrationAuthority::new(g, g2);
     println!("vk_RA.u ∈ ℤ_q = {:?}", ra.vk.u);
     println!("vk_RA.v ∈ ℤ_q = {:?}", ra.vk.v);
     println!("vk_RA.h ∈ ℤ_q = {:?}", ra.vk.h);
@@ -181,17 +181,27 @@ fn main() {
      * ------------------------------------------------------------------------------
     */
     
-    // Initialize 5 users in the userbase
+    // Initialize 5 users in the userbase and register their ID with the RA
     let mut userbase:Vec<User> = Vec::new();
-    for i in 0..5 {
-        userbase.push(User::new());
+    for _ in 0..5 {
+        let mut new_user = User::new();
+        new_user.reg_user(&mut ra);
+        userbase.push(new_user);
     }
-    userbase.push(SurveyAuthority::new(g, g2));
-    println!();
-    userbase[0].re_identify();
-    userbase[3].re_identify();
-    println!();
 
+    println!("{:?}", ra.userid_list);
+
+    // Just for fun, some users will change their identities
+    userbase[0].re_identify(&mut ra);
+    userbase[3].re_identify(&mut ra);
+
+    println!("{:?}", ra.userid_list);
+
+
+
+
+
+    
     // TODO: Have all users run on separate threads for efficiency
 
     println!();

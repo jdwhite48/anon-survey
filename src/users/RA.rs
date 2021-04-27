@@ -19,7 +19,9 @@ use super::{VerificationKey};
 
 pub struct RegistrationAuthority {
     pub vk: VerificationKey,
-    sk: Fr
+    sk: Fr,
+    // A list of users for the anonymous survey system. Essentially an anonymity set
+    pub userid_list: Vec<Fr>
 }
 
 impl RegistrationAuthority {
@@ -32,8 +34,9 @@ impl RegistrationAuthority {
         // Generate parameters for RA
         let (vk, x) =  Self::gen_RA(g, g2);
 
+        let userid_list:Vec<Fr> = Vec::new();
         // Return user with verification and signing key for registering users
-        RegistrationAuthority {vk, sk: x}
+        RegistrationAuthority {vk, sk: x, userid_list}
     }
 
     /* Generate public and private keys for registration authority */
