@@ -141,7 +141,7 @@ pub trait SurveyAuthority {
     }
 
     // Instance method that generate survey with signature for each provided user id
-    fn gen_survey(&mut self, L:Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)>;
+    fn gen_survey(&mut self, L:&Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)>;
 }
 
 impl SurveyAuthority for User {
@@ -160,7 +160,7 @@ impl SurveyAuthority for User {
 
 
         
-    fn gen_survey(&mut self, L:Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)> {
+    fn gen_survey(&mut self, L:&Vec<Fr>, g:G1, g2:G2, vk_ra: &VerificationKey) -> Option<(Fr, Vec<(Fr, G1, G2)>)> {
         // crytpographiclaly secure thread-local rng
         let rng = &mut rand::thread_rng();
 
@@ -182,7 +182,7 @@ impl SurveyAuthority for User {
         
         // Authorize all users in L (even if they're not registered -- this would be caught later)
         // to submit a survey by constructing a signature with their id
-        for id in &L {
+        for id in L {
             
             // Choose random r in Z_q (TODO: Move this and sigma_2 outside of loop???)
             let r = Fr::random(rng);

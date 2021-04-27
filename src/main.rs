@@ -4,9 +4,9 @@ extern crate rand;
 extern crate hex;
 
 mod users;
-use users::{User, SurveyAuthority, RegistrationAuthority};
+use users::{User, SurveyAuthority, RegistrationAuthority, VerificationKey};
 
-use tbn::{Group, Fq, G1, Fq2, G2, Fr};
+use tbn::{Group, Fq, G1, Fq2, G2, Fr, pairing};
 use tbn::arith::U256;
 
 use hex::FromHex;
@@ -194,9 +194,9 @@ fn main() {
     userbase[0].re_identify(&mut ra);
     userbase[3].re_identify(&mut ra);
 
-    println!("List of registered user ids in ℤ_q :");
+    println!("List of registered users:");
     for id in &ra.userid_list { 
-        println!("User id:\t{:?}", *id);
+        println!("User id ∈ ℤ_q : {:?}", *id);
     }
     println!();
 
@@ -204,17 +204,32 @@ fn main() {
      *                                  GenSurvey                                       
      * ------------------------------------------------------------------------------
      */
-    // Could theoretically choose any list any ids, even for users who have not yet registered with
+    // Could theoretically choose a list of any ids, even for users who have not yet registered with
     // the RA.
-    println!("SA: Generating survey for {} users...", ra.userid_list.len());
-    let (vid, signatures):(Fr, Vec<(Fr, G1, G2)>) = sa.gen_survey(ra.userid_list, g, g2, &ra.vk).expect("SA survey creation failed!");
-    println!("Survey generated:");
+    let rng = &mut rand::thread_rng();
+    let unregistered_userid = Fr::random(rng);
+    let mut part_list:Vec<Fr> = ra.userid_list.clone();
+    println!("Unregistered user with id ∈ ℤ_q : {:?}", unregistered_userid);
+    part_list.push(unregistered_userid);
+    println!();
+
+    println!("SA: Generating survey signatures for {} potential users...", part_list.len());
+    let (vid, signatures):(Fr, Vec<(Fr, G1, G2)>) = sa.gen_survey(&part_list, g, g2, &ra.vk).expect("SA survey creation failed!");
+    println!("Ad-hoc survey generated:");
     println!("\tvid ∈ ℤ_q (survey ID) = {:?}", vid);
     println!("\tList of authorized users:");
-    for (id, sigma_1, sigma_2) in signatures {
-        println!("\t\tParticipant id:\t{:?}", id);
-        println!("\t\t\t(σ1, σ2) ∈ G1 × G2 (SA signature for participant) = ({:?}, {:?})", sigma_1, sigma_2);
+    for (id, sigma_1, sigma_2) in &signatures {
+        println!("\t\tParticipant id:\t{:?}", *id);
+        println!();
+        println!("\t\t\t(σ1, σ2) ∈ G1 × G2 (SA signature for participant) = ({:?}, {:?})", *sigma_1, *sigma_2);
+        print!("\t\t\tAuthorized... ");
+        match authorized(*id, vid, &signatures, &sa.vk, &ra.vk, g2) {
+            true    => println!("\u{2713}"),    // Checkmark    (yes!)
+            false   => println!("\u{2717}")     // X mark       (no!)
+        }
+        println!();
     }
+    println!();
 
 
     // TODO: Have all users run on separate threads for efficiency
@@ -223,11 +238,22 @@ fn main() {
 }
 
 
+// Anyone can test if a user is authorized to take a survey
+fn authorized(id:Fr, vid:Fr, Lvid:&Vec<(Fr, G1, G2)>, vk_sa:&VerificationKey, vk_ra:&VerificationKey, g2:G2) -> bool {
+    
+    // Search through list of participant signature to find the one corresponding to id
+    for (part_id, sigma_1, sigma_2) in Lvid {
+        if *part_id == id {
+            return pairing(*sigma_1, g2) == ( (*vk_sa).pk * pairing((*vk_sa).u * vid + (*vk_sa).v * id + (*vk_ra).h, *sigma_2) );
+        }
+    }
+    false
+}
+
+
 // Fuzzy test for if we have a good generator for pairing-based crypto
 #[test]
 fn test_generators() {
-
-    use tbn::{Fr, pairing};
 
     let (g, g2):(G1, G2) = get_generator_pair();
     // Try 5 different random values to see if assertion holds each time
